@@ -155,11 +155,17 @@ funnel-built schema against the equivalent hand-written one and reports the
 ratio: 100% means the same speed, higher means `funnel` is faster.
 Representative numbers (Node 22, zod 4, a three-shape schema):
 
-| Scenario                     | funnel vs hand-written |
-| ---------------------------- | ---------------------- |
-| canonical shape              | ~115% — faster         |
-| last alternate shape         | ~170% — faster         |
-| non-matching input, rejected | ~110% — faster         |
+| Scenario                     | vs `.or()` chain | vs flat `z.union` |
+| ---------------------------- | ---------------- | ----------------- |
+| canonical shape              | ~115% — faster   | ~100% — same      |
+| last alternate shape         | ~170% — faster   | ~100% — same      |
+| non-matching input, rejected | ~110% — faster   | ~100% — same      |
+
+The flat `z.union([target, ...])` column is the fairness control: it is
+structurally identical to what `funnel` builds, and measures the same —
+`funnel` is not faster than Zod, it just avoids the nested unions an
+`.or()` chain creates (`union(union(target, A), B)` vs
+`union(target, A, B)`).
 
 Absolute numbers vary by machine — run `npm run bench` to reproduce. The
 check fails if `funnel` ever drops below 75% — i.e. becomes more than a
