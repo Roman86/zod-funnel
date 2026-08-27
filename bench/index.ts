@@ -1,4 +1,4 @@
-import { Bench, mToNs } from 'tinybench';
+import { Bench } from 'tinybench';
 import * as z from 'zod';
 
 import { funnel } from '../src/index.ts';
@@ -77,22 +77,6 @@ bench
 
 await bench.run();
 
-console.table(
-  bench.table((task): Record<string, string | number> => {
-    const result = task.result;
-    if (!result || result.state !== 'completed') {
-      return { 'Task name': task.name, state: result?.state ?? 'missing' };
-    }
-    return {
-      'Task name': task.name,
-      'Throughput avg (ops/s)': Math.round(
-        result.throughput.mean,
-      ).toLocaleString('en-US'),
-      'Latency med (ns)': Number(mToNs(result.latency.p50).toFixed(1)),
-    };
-  }),
-);
-
 // The check: funnel must stay within TOLERANCE of both hand-written
 // variants on every scenario.
 const TOLERANCE = 0.75;
@@ -112,29 +96,33 @@ const scenarios = [
 ] as const;
 
 let failed = false;
-const compare = (rivalPrefix: string) => {
-  for (const scenario of scenarios) {
-    const ratio =
-      opsPerSec(`funnel: ${scenario}`) / opsPerSec(`${rivalPrefix}: ${scenario}`);
-    const verdict = ratio >= TOLERANCE ? 'ok  ' : 'FAIL';
-    const label = ratio >= 1 ? 'funnel is faster' : 'funnel is slower';
-    console.log(
-      `${verdict} ${scenario}: ${(ratio * 100).toFixed(1)}% (${label})`,
-    );
-    if (ratio < TOLERANCE) failed = true;
-  }
+const ratioCell = (ratio: number): string => {
+  if (ratio < TOLERANCE) failed = true;
+  return `${(ratio * 100).toFixed(1)}%${ratio < TOLERANCE ? ' FAIL' : ''}`;
 };
 
+console.log('\nfunnel throughput by scenario (ops/s, higher is better).');
 console.log(
-  '\nThroughput of the funnel-built schema relative to hand-written zod',
+  'The vs columns relate funnel to the equivalent hand-written schema:',
 );
-console.log('(ops/sec; 100% = same speed, higher = funnel is faster).\n');
+console.log('over 100% = funnel is faster, under = slower, 100% = the same;');
+console.log(`below ${TOLERANCE * 100}% the check fails.`);
+console.log('- vs or-chain: the .or() chain a user would write (nested unions)');
+console.log('- vs flat union: flat z.union, structurally identical to funnel');
 
-console.log('vs the .or() chain (nested unions):');
-compare('or-chain');
-
-console.log('\nvs a flat z.union (identical structure, fairness control):');
-compare('flat union');
+console.table(
+  scenarios.map((scenario) => {
+    const funnelOps = opsPerSec(`funnel: ${scenario}`);
+    return {
+      Scenario: scenario,
+      'funnel (ops/s)': Math.round(funnelOps).toLocaleString('en-US'),
+      'vs or-chain': ratioCell(funnelOps / opsPerSec(`or-chain: ${scenario}`)),
+      'vs flat union': ratioCell(
+        funnelOps / opsPerSec(`flat union: ${scenario}`),
+      ),
+    };
+  }),
+);
 
 const unionCost =
   opsPerSec('funnel: canonical') /
