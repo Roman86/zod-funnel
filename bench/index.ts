@@ -1,4 +1,4 @@
-import { Bench } from 'tinybench';
+import { Bench, mToNs } from 'tinybench';
 import * as z from 'zod';
 
 import { funnel } from '../src/index.ts';
@@ -77,7 +77,21 @@ bench
 
 await bench.run();
 
-console.table(bench.table());
+console.table(
+  bench.table((task): Record<string, string | number> => {
+    const result = task.result;
+    if (!result || result.state !== 'completed') {
+      return { 'Task name': task.name, state: result?.state ?? 'missing' };
+    }
+    return {
+      'Task name': task.name,
+      'Throughput avg (ops/s)': Math.round(
+        result.throughput.mean,
+      ).toLocaleString('en-US'),
+      'Latency med (ns)': Number(mToNs(result.latency.p50).toFixed(1)),
+    };
+  }),
+);
 
 // The check: funnel must stay within TOLERANCE of both hand-written
 // variants on every scenario.
@@ -121,6 +135,15 @@ compare('or-chain');
 
 console.log('\nvs a flat z.union (identical structure, fairness control):');
 compare('flat union');
+
+const unionCost =
+  opsPerSec('funnel: canonical') /
+  opsPerSec('plain zod (canonical only, baseline)');
+console.log(
+  `\nFor context: with two alternates attached, canonical parses run at ` +
+    `${(unionCost * 100).toFixed(1)}% of a bare Person.parse — the cost of ` +
+    `having a union at all, identical for funnel and hand-written zod.`,
+);
 
 if (failed) {
   console.error(
