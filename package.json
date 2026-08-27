@@ -13,6 +13,14 @@
   ],
   "license": "MIT",
   "author": "Roman Kozodoi",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Roman86/zod-funnel.git"
+  },
+  "homepage": "https://github.com/Roman86/zod-funnel#readme",
+  "bugs": {
+    "url": "https://github.com/Roman86/zod-funnel/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
