@@ -83,14 +83,14 @@ const User = funnel(
 ).from(
   z.number(),
   (age) => ({
-    name: `Somebody of ${age}`,
+    name: `Somebody aged ${age}`,
     age,
   })
 );
 
 User.parse({ name: 'John', age: 30 }); // canonical
 User.parse('John Doe'); // → { name: 'John', age: null }
-User.parse(30); // → { name: 'Somebody of 30', age: 30 }
+User.parse(30); // → { name: 'Somebody aged 30', age: 30 }
 ```
 
 The same trick covers a common API evolution: an endpoint used to return a
