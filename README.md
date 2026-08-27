@@ -66,17 +66,31 @@ PersonFlex.safeParse({ nonsense: true }); // { success: false, error: ZodError }
 `.optional()` and the rest of the Zod API all work as usual.
 
 Alternate shapes don't have to be objects — any Zod schema works as a
-source, e.g. a plain string:
+source, e.g. a plain string or number:
 
 ```ts
-const User = funnel(z.object({ name: z.string(), age: z.number().nullable() }))
-  .from(z.string(), (v) => ({
+const User = funnel(
+  z.object({
+    name: z.string(), 
+    age: z.number().nullable()
+  })
+).from(
+  z.string(),
+  (v) => ({
     name: v.split(' ')[0],
     age: null,
-  }));
+  })
+).from(
+  z.number(),
+  (age) => ({
+    name: `Somebody of ${age}`,
+    age,
+  })
+);
 
-User.parse('John Doe'); // → { name: 'John', age: null }
 User.parse({ name: 'John', age: 30 }); // canonical
+User.parse('John Doe'); // → { name: 'John', age: null }
+User.parse(30); // → { name: 'Somebody of 30', age: 30 }
 ```
 
 The same trick covers a common API evolution: an endpoint used to return a
@@ -101,20 +115,36 @@ adapters is built dynamically and chaining is not an option. Each adapter
 is a `[source, map]` pair:
 
 ```ts
-const Point = z.object({ x: z.number(), y: z.number() });
-
-const PointFlex = funnel(Point).from([
-  [z.tuple([z.number(), z.number()]), ([x, y]) => ({ x, y })],
-  [z.number(), (x) => ({ x, y: 0 })],
+const Coord = funnel(
+  z.object({ 
+    lat: z.number(),
+    lng: z.number(),
+    alt: z.number() })
+).from([
+  [
+    z.tuple([z.number(), z.number()]), 
+    ([lat, lng]) => ({ lat, lng, alt: 0 })
+  ],
+  [
+    z.tuple([z.number(), z.number(), z.number()]), 
+    ([lat, lng, alt]) => ({ lat, lng, alt })
+  ],
+  [
+    z.object({x: z.number(), y: z.number(), z: z.number().optional()}),
+    ({x, y, z: alt}) => ({ lat: x, lng: y, alt: alt ?? 0 })
+  ],
 ]);
 
-PointFlex.parse([1, 2]); // → { x: 1, y: 2 }
-PointFlex.parse(7); // → { x: 7, y: 0 }
+Coord.parse([1, 2]); // → { lat: 1, lng: 2, alt: 0 }
+Coord.parse([7, 8, 9]); // → { lat: 7, lng: 8, alt: 9 }
+Coord.parse({ x: 7, y: 8 }); // → { lat: 7, lng: 8, alt: 0 }
+Coord.parse({ x: 7, y: 8, z: 9 }); // → { lat: 7, lng: 8, alt: 9 }
 ```
 
 Both forms return the same kind of schema, so they mix freely on one
 chain. For arrays built outside the call, the `FunnelAdapter` type is
-exported: `FunnelAdapter<typeof Point>[]`.
+exported: `FunnelAdapter<typeof Target>[]`, where `Target` is the
+canonical schema.
 
 ## Semantics
 
