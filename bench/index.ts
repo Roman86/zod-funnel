@@ -83,13 +83,16 @@ const pairs = [
   ['funnel: mismatch (safeParse)', 'native: mismatch (safeParse)'],
 ] as const;
 
+console.log(
+  '\nThroughput of the funnel-built schema relative to the hand-written one',
+);
+console.log('(ops/sec; 100% = same speed, higher = funnel is faster):\n');
+
 let failed = false;
 for (const [funnelTask, nativeTask] of pairs) {
   const ratio = opsPerSec(funnelTask) / opsPerSec(nativeTask);
   const verdict = ratio >= TOLERANCE ? 'ok  ' : 'FAIL';
-  console.log(
-    `${verdict} ${funnelTask}: ${(ratio * 100).toFixed(1)}% of native throughput`,
-  );
+  console.log(`${verdict} ${funnelTask}: ${(ratio * 100).toFixed(1)}%`);
   if (ratio < TOLERANCE) failed = true;
 }
 

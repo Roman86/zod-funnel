@@ -150,8 +150,11 @@ canonical schema's input.
 
 It doesn't cost performance either: `funnel` builds one flat union where a
 `.or()` chain nests them, which in practice measures slightly faster.
-`npm run bench` runs the comparison and fails if `funnel` ever drops below
-75% of the hand-written schema's throughput; CI runs it on every push.
+`npm run bench` compares the throughput (parses per second) of a
+funnel-built schema against the equivalent hand-written one and reports the
+ratio: 100% means the same speed, higher means `funnel` is faster. The
+check fails if `funnel` ever drops below 75% — i.e. becomes more than a
+quarter slower than the hand-written schema; CI runs it on every push.
 
 ## Limitations
 
