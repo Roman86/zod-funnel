@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { funnel } from './index';
+import { funnel, type FunnelAdapter } from './index';
 
 const Person = z.object({
   first_name: z.string(),
@@ -126,6 +126,67 @@ describe('funnel', () => {
       // @ts-expect-error — mapper must return the canonical input shape
       ({ x }) => ({ wrong: x }),
     );
+  });
+
+  test('.from() accepts an array of adapters', () => {
+    const schema = funnel(Person).from([
+      [
+        z.object({ full_name: z.string() }),
+        ({ full_name }) => splitName(full_name),
+      ],
+      [z.object({ name: z.string() }), ({ name }) => splitName(name)],
+    ]);
+    const doe = { first_name: 'John', last_name: 'Doe' };
+    expect(schema.parse(doe)).toEqual(doe);
+    expect(schema.parse({ full_name: 'John Doe' })).toEqual(doe);
+    expect(schema.parse({ name: 'John Doe' })).toEqual(doe);
+    expect(schema.safeParse({ nonsense: true }).success).toBe(false);
+  });
+
+  test('array and pair forms of .from() mix on one chain', () => {
+    const base = funnel(Person).from([
+      [
+        z.object({ full_name: z.string() }),
+        ({ full_name }) => splitName(full_name),
+      ],
+    ]);
+    const extended = base.from(z.object({ name: z.string() }), ({ name }) =>
+      splitName(name),
+    );
+    expect(base.safeParse({ name: 'John Doe' }).success).toBe(false);
+    expect(extended.safeParse({ name: 'John Doe' }).success).toBe(true);
+  });
+
+  test('.from([]) accepts only the canonical shape', () => {
+    const schema = funnel(Person).from([]);
+    expect(
+      schema.safeParse({ first_name: 'John', last_name: 'Doe' }).success,
+    ).toBe(true);
+    expect(schema.safeParse({ full_name: 'John Doe' }).success).toBe(false);
+  });
+
+  test('a dynamically built adapter array works', () => {
+    const keys = ['full_name', 'name'] as const;
+    const adapters: FunnelAdapter<typeof Person>[] = keys.map((k) => [
+      z.object({ [k]: z.string() }),
+      (d) => splitName(d[k]),
+    ]);
+    const schema = funnel(Person).from(adapters);
+    expect(schema.parse({ full_name: 'John Doe' })).toEqual({
+      first_name: 'John',
+      last_name: 'Doe',
+    });
+    expect(schema.parse({ name: 'Jane Roe' })).toEqual({
+      first_name: 'Jane',
+      last_name: 'Roe',
+    });
+  });
+
+  test('array-form mapper return type is checked', () => {
+    funnel(Person).from([
+      // @ts-expect-error — mapper must return the canonical input shape
+      [z.object({ x: z.string() }), ({ x }) => ({ wrong: x })],
+    ]);
   });
 
   test('.from() does not mutate the schema it was called on', () => {

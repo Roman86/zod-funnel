@@ -94,10 +94,33 @@ ResultsFlex.parse(['a', 'b']); // → { items: ['a', 'b'], total: 2 }
 ResultsFlex.parse({ items: ['a', 'b'], total: 2 }); // canonical
 ```
 
+### Adapters as an array
+
+`.from()` also accepts an array of adapters — handy when the set of
+adapters is built dynamically and chaining is not an option. Each adapter
+is a `[source, map]` pair:
+
+```ts
+const Point = z.object({ x: z.number(), y: z.number() });
+
+const PointFlex = funnel(Point).from([
+  [z.tuple([z.number(), z.number()]), ([x, y]) => ({ x, y })],
+  [z.number(), (x) => ({ x, y: 0 })],
+]);
+
+PointFlex.parse([1, 2]); // → { x: 1, y: 2 }
+PointFlex.parse(7); // → { x: 7, y: 0 }
+```
+
+Both forms return the same kind of schema, so they mix freely on one
+chain. For arrays built outside the call, the `FunnelAdapter` type is
+exported: `FunnelAdapter<typeof Point>[]`.
+
 ## Semantics
 
-- Shapes are tried in order: the canonical schema first, then each `.from()`
-  in declaration order. The first match wins.
+- Shapes are tried in order: the canonical schema first, then each alternate
+  in declaration order (array order within an adapter array). The first
+  match wins.
 - Every mapper's output is **re-validated** against the target schema, so a
   mapping that produces invalid data (e.g. `'Madonna'.split(' ')[1]` being
   `undefined`) fails the parse instead of leaking a broken value.
