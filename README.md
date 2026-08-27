@@ -153,13 +153,14 @@ It doesn't cost performance either: `funnel` builds one flat union where a
 `npm run bench` compares the throughput (parses per second) of a
 funnel-built schema against the equivalent hand-written one and reports the
 ratio: 100% means the same speed, higher means `funnel` is faster.
-Representative numbers (Node 22, zod 4, a three-shape schema):
+Representative numbers from one machine (zod 4, the three-shape schema
+from `bench/`):
 
-| Scenario                     | vs `.or()` chain | vs flat `z.union` |
-| ---------------------------- | ---------------- | ----------------- |
-| canonical shape              | ~115% — faster   | ~100% — same      |
-| last alternate shape         | ~170% — faster   | ~100% — same      |
-| non-matching input, rejected | ~110% — faster   | ~100% — same      |
+| Scenario                     | funnel (ops/s) | vs `.or()` chain | vs flat `z.union` |
+| ---------------------------- | -------------- | ---------------- | ----------------- |
+| canonical shape              | 19,241,008     | 140.8% — faster  | 104.0% — same     |
+| last alternate shape         | 2,463,890      | 174.8% — faster  | 102.8% — same     |
+| non-matching input, rejected | 140,952        | 110.2% — faster  | 100.8% — same     |
 
 The flat `z.union([target, ...])` column is the fairness control: it is
 structurally identical to what `funnel` builds, and measures the same —
