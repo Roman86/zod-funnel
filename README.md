@@ -155,11 +155,11 @@ funnel-built schema against the equivalent hand-written one and reports the
 ratio: 100% means the same speed, higher means `funnel` is faster.
 Representative numbers (Node 22, zod 4, a three-shape schema):
 
-| Scenario                    | funnel vs hand-written |
-| --------------------------- | ---------------------- |
-| canonical shape             | ~115%                  |
-| last alternate shape        | ~170%                  |
-| non-matching input, rejected| ~110%                  |
+| Scenario                     | funnel vs hand-written |
+| ---------------------------- | ---------------------- |
+| canonical shape              | ~115% — faster         |
+| last alternate shape         | ~170% — faster         |
+| non-matching input, rejected | ~110% — faster         |
 
 Absolute numbers vary by machine — run `npm run bench` to reproduce. The
 check fails if `funnel` ever drops below 75% — i.e. becomes more than a

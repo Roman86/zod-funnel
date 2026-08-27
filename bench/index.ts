@@ -92,7 +92,11 @@ let failed = false;
 for (const [funnelTask, nativeTask] of pairs) {
   const ratio = opsPerSec(funnelTask) / opsPerSec(nativeTask);
   const verdict = ratio >= TOLERANCE ? 'ok  ' : 'FAIL';
-  console.log(`${verdict} ${funnelTask}: ${(ratio * 100).toFixed(1)}%`);
+  const label =
+    ratio >= 1 ? 'funnel is faster' : 'funnel is slower';
+  console.log(
+    `${verdict} ${funnelTask}: ${(ratio * 100).toFixed(1)}% (${label})`,
+  );
   if (ratio < TOLERANCE) failed = true;
 }
 
