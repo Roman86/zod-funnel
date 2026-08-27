@@ -148,6 +148,11 @@ repeated in every `.pipe()`, the `transform` + `pipe` re-validation pattern
 is impossible to forget, and each mapper's return type is checked against the
 canonical schema's input.
 
+It doesn't cost performance either: `funnel` builds one flat union where a
+`.or()` chain nests them, which in practice measures slightly faster.
+`npm run bench` runs the comparison and fails if `funnel` ever drops below
+75% of the hand-written schema's throughput; CI runs it on every push.
+
 ## Limitations
 
 - Derived schemas (`.array()`, `.optional()`, …) are ordinary Zod schemas
