@@ -1,17 +1,30 @@
 # zod-funnel
 
+[![NPM Downloads](https://img.shields.io/npm/dm/zod-funnel)](https://www.npmjs.com/package/zod-funnel)
+[![npm version](https://badge.fury.io/js/zod-funnel.svg)](https://badge.fury.io/js/zod-funnel)
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-ffdd00?logo=buy-me-a-coffee&logoColor=black)](https://www.buymeacoffee.com/romanjs)
+[![GitHub Sponsors](https://img.shields.io/badge/Sponsor-ea4aaa?logo=github-sponsors&logoColor=white)](https://github.com/sponsors/Roman86)
+
 Accept many input shapes, parse to one canonical [Zod](https://zod.dev) schema.
 
-APIs evolve: a field gets renamed, an old client still sends the legacy
-payload, a third party uses its own naming. `zod-funnel` lets you declare a
-single canonical schema and funnel any number of alternate shapes into it —
-each with a small mapping function — while keeping full type safety.
+## What
+
+`zod-funnel` lets you declare a single canonical schema and funnel any
+number of alternate shapes into it — each with a small mapping function —
+while keeping full type safety. The result is a regular Zod schema.
 
 ```
 { first_name, last_name }  ──┐
 { full_name }  ── map ───────┼──▶  Person
 { name }  ────── map ────────┘
 ```
+
+## Why
+
+APIs evolve: a field gets renamed, an old client still sends the legacy
+payload, a third party uses its own naming. Instead of scattering ad-hoc
+normalizers around the codebase, you state the canonical shape once and
+keep each alternate as a small, type-checked mapping right next to it.
 
 ## Install
 
@@ -88,9 +101,10 @@ ResultsFlex.parse({ items: ['a', 'b'], total: 2 }); // canonical
 - Every mapper's output is **re-validated** against the target schema, so a
   mapping that produces invalid data (e.g. `'Madonna'.split(' ')[1]` being
   `undefined`) fails the parse instead of leaking a broken value.
-- `funnel(target)` alone is **not** a schema — it only has `.from()`. At
-  least one alternate shape is required; forgetting it is a compile-time
-  error in TypeScript.
+- `funnel(target)` alone is **not** a schema — it only has `.from()`. An
+  unfinished funnel has no `parse`/`safeParse`, so using it as a schema
+  simply doesn't type-check: no special errors, the type system rules it
+  out on its own.
 - Every `.from()` returns a new schema; previously built schemas are never
   mutated.
 
