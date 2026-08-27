@@ -172,12 +172,14 @@ Absolute numbers vary by machine — run `npm run bench` to reproduce. The
 check fails if `funnel` ever drops below 75% — i.e. becomes more than a
 quarter slower than the hand-written schema; CI runs it on every push.
 
-## Limitations
+## Gotchas
 
-- Derived schemas (`.array()`, `.optional()`, …) are ordinary Zod schemas
-  without `.from()` — finish the `.from()` chain first, derive after.
-- On failure the error is a regular `ZodError` from the underlying union,
-  listing the issues of every attempted shape.
+- Derive after funneling: `.array()`, `.optional()` and other derived
+  schemas are ordinary Zod schemas without `.from()`, so finish the
+  `.from()` chain first and derive from the result.
+- Errors come from the underlying union: a failed parse yields a regular
+  `ZodError` that lists the issues of every attempted shape, so expect
+  more entries than a single schema would produce.
 
 ## License
 
