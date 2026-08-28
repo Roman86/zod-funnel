@@ -173,19 +173,19 @@ canonical schema.
 
 ## Compared to plain Zod
 
-`zod-funnel` is deliberately thin sugar over Zod itself. The example above is
-equivalent to:
+`zod-funnel` is deliberately thin sugar over Zod itself. The example above
+builds exactly this schema:
 
 <!-- doctest: skip -->
 ```ts
-const PersonFlex = Person.or(
-  z
-    .object({ first_name: z.string(), last_name: z.string() })
+const PersonFlex = z.union([
+  Person,
+  z.object({ first_name: z.string(), last_name: z.string() })
     .transform(snakeCaseToPerson)
     .pipe(Person),
-)
-  .or(z.object({ full_name: z.string() }).transform(fullNameToPerson).pipe(Person))
-  .or(z.object({ name: z.string() }).transform(nameToPerson).pipe(Person));
+  z.object({ full_name: z.string() }).transform(fullNameToPerson).pipe(Person),
+  z.object({ name: z.string() }).transform(nameToPerson).pipe(Person),
+]);
 ```
 
 What the sugar buys you: the target schema is stated once instead of being
@@ -193,13 +193,13 @@ repeated in every `.pipe()`, the `transform` + `pipe` re-validation pattern
 is impossible to forget, and each mapper's return type is checked against the
 canonical schema's input.
 
-It doesn't cost performance either: `funnel` builds one flat union where a
-`.or()` chain nests them, which in practice measures slightly faster.
-`npm run bench` compares the throughput (parses per second) of a
-funnel-built schema against the equivalent hand-written one and reports the
-ratio: 100% means the same speed, higher means `funnel` is faster.
-Representative numbers from one machine (zod 4, the three-shape schema
-from `bench/`):
+It doesn't cost performance either. `npm run bench` compares a funnel-built
+schema against the same union hand-written two ways: as the flat `z.union`
+above (structurally identical to what `funnel` builds) and assembled
+incrementally as `Person.or(A).or(B)`, which nests unions
+(`union(union(Person, A), B)`). 100% means the same speed, higher means
+`funnel` is faster. Representative numbers from one machine (zod 4, the
+three-shape schema from `bench/`):
 
 | Scenario                     | funnel (ops/s) | vs `.or()` chain | vs flat `z.union` |
 | ---------------------------- | -------------- | ---------------- | ----------------- |
@@ -207,15 +207,12 @@ from `bench/`):
 | last alternate shape         | 2,463,890      | 174.8% — faster  | 102.8% — same     |
 | non-matching input, rejected | 140,952        | 110.2% — faster  | 100.8% — same     |
 
-The flat `z.union([target, ...])` column is the fairness control: it is
-structurally identical to what `funnel` builds, and measures the same —
-`funnel` is not faster than Zod, it just avoids the nested unions an
-`.or()` chain creates (`union(union(target, A), B)` vs
-`union(target, A, B)`).
+`funnel` is not faster than Zod — it matches the flat union and outpaces
+the `.or()` chain only because chaining nests unions.
 
 Absolute numbers vary by machine — run `npm run bench` to reproduce. The
-check fails if `funnel` ever drops below 75% — i.e. becomes more than a
-quarter slower than the hand-written schema; CI runs it on every push.
+check fails if `funnel` drops below 75% of either hand-written variant;
+CI runs it on every push.
 
 ## Gotchas
 

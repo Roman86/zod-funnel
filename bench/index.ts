@@ -5,7 +5,7 @@ import { funnel } from '../src/index.ts';
 
 // The same three-shape Person schema, built three ways:
 // - with funnel;
-// - hand-written as the .or() chain a user would naturally write
+// - hand-written as an incrementally chained .or()
 //   (nested unions: union(union(Person, A), B));
 // - hand-written as one flat z.union([Person, A, B]) — structurally
 //   identical to what funnel builds, the fairness control.
@@ -107,7 +107,7 @@ console.log(
 );
 console.log('over 100% = funnel is faster, under = slower, 100% = the same;');
 console.log(`below ${TOLERANCE * 100}% the check fails.`);
-console.log('- vs or-chain: the .or() chain a user would write (nested unions)');
+console.log('- vs or-chain: incrementally chained .or() (nested unions)');
 console.log('- vs flat union: flat z.union, structurally identical to funnel');
 
 console.table(
