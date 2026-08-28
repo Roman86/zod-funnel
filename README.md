@@ -14,15 +14,17 @@ number of alternate shapes into it — each with a small mapping function —
 while keeping full type safety. The result is a regular Zod schema.
 
 ```
-{ first_name, last_name }  ──┐
-{ full_name }  ── map ───────┼──▶  Person
-{ name }  ────── map ────────┘
+{ firstName, lastName }  ───────────┐
+{ first_name, last_name }  ── map ──┼──▶  Person
+{ full_name }  ── map ──────────────┤
+{ name }  ── map ───────────────────┘
 ```
 
 ## Why
 
 APIs evolve: a field gets renamed, an old client still sends the legacy
-payload, a third party uses its own naming. Instead of scattering ad-hoc
+payload, a third party uses its own naming, or the backend speaks
+snake_case while your app wants camelCase. Instead of scattering ad-hoc
 normalizers around the codebase, you state the canonical shape once and
 keep each alternate as a small, type-checked mapping right next to it.
 
@@ -41,23 +43,31 @@ import * as z from 'zod';
 import { funnel } from 'zod-funnel';
 
 const Person = z.object({
-  first_name: z.string(),
-  last_name: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
 });
 
 const PersonFlex = funnel(Person)
+  .from(
+    z.object({ first_name: z.string(), last_name: z.string() }),
+    ({ first_name, last_name }) => ({
+      firstName: first_name,
+      lastName: last_name,
+    }),
+  )
   .from(z.object({ full_name: z.string() }), ({ full_name }) => ({
-    first_name: full_name.split(' ')[0],
-    last_name: full_name.split(' ')[1],
+    firstName: full_name.split(' ')[0],
+    lastName: full_name.split(' ')[1],
   }))
   .from(z.object({ name: z.string() }), ({ name }) => ({
-    first_name: name.split(' ')[0],
-    last_name: name.split(' ')[1],
+    firstName: name.split(' ')[0],
+    lastName: name.split(' ')[1],
   }));
 
-PersonFlex.parse({ first_name: 'John', last_name: 'Doe' }); // canonical
-PersonFlex.parse({ full_name: 'John Doe' }); // → { first_name: 'John', last_name: 'Doe' }
-PersonFlex.parse({ name: 'John Doe' }); // → { first_name: 'John', last_name: 'Doe' }
+PersonFlex.parse({ firstName: 'John', lastName: 'Doe' }); // canonical
+PersonFlex.parse({ first_name: 'John', last_name: 'Doe' }); // → { firstName: 'John', lastName: 'Doe' }
+PersonFlex.parse({ full_name: 'John Doe' }); // → { firstName: 'John', lastName: 'Doe' }
+PersonFlex.parse({ name: 'John Doe' }); // → { firstName: 'John', lastName: 'Doe' }
 
 PersonFlex.safeParse({ nonsense: true }); // { success: false, error: ZodError }
 ```
@@ -169,8 +179,13 @@ equivalent to:
 <!-- doctest: skip -->
 ```ts
 const PersonFlex = Person.or(
-  z.object({ full_name: z.string() }).transform(fullNameToPerson).pipe(Person),
-).or(z.object({ name: z.string() }).transform(nameToPerson).pipe(Person));
+  z
+    .object({ first_name: z.string(), last_name: z.string() })
+    .transform(snakeCaseToPerson)
+    .pipe(Person),
+)
+  .or(z.object({ full_name: z.string() }).transform(fullNameToPerson).pipe(Person))
+  .or(z.object({ name: z.string() }).transform(nameToPerson).pipe(Person));
 ```
 
 What the sugar buys you: the target schema is stated once instead of being

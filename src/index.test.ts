@@ -3,16 +3,23 @@ import * as z from 'zod';
 import { funnel, type FunnelAdapter } from './index';
 
 const Person = z.object({
-  first_name: z.string(),
-  last_name: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
 });
 
 const splitName = (name: string) => ({
-  first_name: name.split(' ')[0],
-  last_name: name.split(' ')[1],
+  firstName: name.split(' ')[0],
+  lastName: name.split(' ')[1],
 });
 
 const PersonFlex = funnel(Person)
+  .from(
+    z.object({ first_name: z.string(), last_name: z.string() }),
+    ({ first_name, last_name }) => ({
+      firstName: first_name,
+      lastName: last_name,
+    }),
+  )
   .from(z.object({ full_name: z.string() }), ({ full_name }) =>
     splitName(full_name),
   )
@@ -20,10 +27,18 @@ const PersonFlex = funnel(Person)
 
 describe('funnel', () => {
   test('parses the canonical shape', () => {
+    const r = PersonFlex.safeParse({ firstName: 'John', lastName: 'Doe' });
+    expect(r).toEqual({
+      success: true,
+      data: { firstName: 'John', lastName: 'Doe' },
+    });
+  });
+
+  test('parses via the snake_case alternate (casing-only mapping)', () => {
     const r = PersonFlex.safeParse({ first_name: 'John', last_name: 'Doe' });
     expect(r).toEqual({
       success: true,
-      data: { first_name: 'John', last_name: 'Doe' },
+      data: { firstName: 'John', lastName: 'Doe' },
     });
   });
 
@@ -31,7 +46,7 @@ describe('funnel', () => {
     const r = PersonFlex.safeParse({ full_name: 'John Doe' });
     expect(r).toEqual({
       success: true,
-      data: { first_name: 'John', last_name: 'Doe' },
+      data: { firstName: 'John', lastName: 'Doe' },
     });
   });
 
@@ -39,7 +54,7 @@ describe('funnel', () => {
     const r = PersonFlex.safeParse({ name: 'John Doe' });
     expect(r).toEqual({
       success: true,
-      data: { first_name: 'John', last_name: 'Doe' },
+      data: { firstName: 'John', lastName: 'Doe' },
     });
   });
 
@@ -83,7 +98,7 @@ describe('funnel', () => {
       z.object({ full_name: z.string() }),
       mapper,
     );
-    schema.parse({ first_name: 'John', last_name: 'Doe' });
+    schema.parse({ firstName: 'John', lastName: 'Doe' });
     expect(mapper).not.toHaveBeenCalled();
   });
 
@@ -91,13 +106,13 @@ describe('funnel', () => {
     const list = PersonFlex.array();
     const r = list.safeParse([
       { full_name: 'John Doe' },
-      { first_name: 'Jane', last_name: 'Roe' },
+      { firstName: 'Jane', lastName: 'Roe' },
     ]);
     expect(r).toEqual({
       success: true,
       data: [
-        { first_name: 'John', last_name: 'Doe' },
-        { first_name: 'Jane', last_name: 'Roe' },
+        { firstName: 'John', lastName: 'Doe' },
+        { firstName: 'Jane', lastName: 'Roe' },
       ],
     });
 
@@ -117,7 +132,7 @@ describe('funnel', () => {
     const outputIsNotAny: IsAny<typeof p> = false;
     const assignable: z.infer<typeof Person> = p;
     expect(outputIsNotAny).toBe(false);
-    expect(assignable.first_name).toBe('John');
+    expect(assignable.firstName).toBe('John');
   });
 
   test('mapper return type is checked against the canonical shape', () => {
@@ -136,7 +151,7 @@ describe('funnel', () => {
       ],
       [z.object({ name: z.string() }), ({ name }) => splitName(name)],
     ]);
-    const doe = { first_name: 'John', last_name: 'Doe' };
+    const doe = { firstName: 'John', lastName: 'Doe' };
     expect(schema.parse(doe)).toEqual(doe);
     expect(schema.parse({ full_name: 'John Doe' })).toEqual(doe);
     expect(schema.parse({ name: 'John Doe' })).toEqual(doe);
@@ -160,7 +175,7 @@ describe('funnel', () => {
   test('.from([]) accepts only the canonical shape', () => {
     const schema = funnel(Person).from([]);
     expect(
-      schema.safeParse({ first_name: 'John', last_name: 'Doe' }).success,
+      schema.safeParse({ firstName: 'John', lastName: 'Doe' }).success,
     ).toBe(true);
     expect(schema.safeParse({ full_name: 'John Doe' }).success).toBe(false);
   });
@@ -173,12 +188,12 @@ describe('funnel', () => {
     ]);
     const schema = funnel(Person).from(adapters);
     expect(schema.parse({ full_name: 'John Doe' })).toEqual({
-      first_name: 'John',
-      last_name: 'Doe',
+      firstName: 'John',
+      lastName: 'Doe',
     });
     expect(schema.parse({ name: 'Jane Roe' })).toEqual({
-      first_name: 'Jane',
-      last_name: 'Roe',
+      firstName: 'Jane',
+      lastName: 'Roe',
     });
   });
 

@@ -10,13 +10,13 @@ import { funnel } from '../src/index.ts';
 // - hand-written as one flat z.union([Person, A, B]) — structurally
 //   identical to what funnel builds, the fairness control.
 const Person = z.object({
-  first_name: z.string(),
-  last_name: z.string(),
+  firstName: z.string(),
+  lastName: z.string(),
 });
 
 const splitName = (name: string) => ({
-  first_name: name.split(' ')[0],
-  last_name: name.split(' ')[1],
+  firstName: name.split(' ')[0],
+  lastName: name.split(' ')[1],
 });
 
 const PersonFunnel = funnel(Person)
@@ -37,7 +37,7 @@ const AltName = z
 const PersonOrChain = Person.or(AltFull).or(AltName);
 const PersonFlatUnion = z.union([Person, AltFull, AltName]);
 
-const canonical = { first_name: 'John', last_name: 'Doe' };
+const canonical = { firstName: 'John', lastName: 'Doe' };
 const alternate = { name: 'John Doe' };
 const mismatch = { nonsense: true };
 
